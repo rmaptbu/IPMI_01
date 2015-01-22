@@ -149,16 +149,24 @@ def ssd(img1, img2):
 
 # Normalised cross correlation
 def ncc(img1, img2):
-	mean1=np.mean(img1)
-	mean2=np.mean(img2)
-	result=np.sum((img1-mean1)*(img2-mean2))
+    mean1=np.mean(img1)
+    mean2=np.mean(img2)
+    N=np.array(img1.size).astype('float')
+    result=np.sum((img1-mean1)*(img2-mean2))/(np.std(img1)*np.std(img2)*N)
     return result
     
 
 # Normalised mutual information
 def nmi(img1, img2):
-    # TODO
-    return None
+    #H, Edge1, Edge2 = np.histogram2d(img1.reshape(img1.size), np.reshape
+	#H=H/H.sum()
+	#M1=H.sum(0)
+	#M2=H.sum(1)
+	#E1=np.sum(M1*np.log(M1+np.finfo(float).eps))
+	#E2=np.sum(M2*np.log(M2+np.finfo(float).eps))
+	#EJ=np.sum(H*np.log(H+np.finfo(float).eps))
+	return (E1+E2)/EJ
+
 
 # Main function
 def main():
@@ -171,23 +179,39 @@ def main():
 #    translation_values=np.array([-2])
     transformation_matrix=np.eye(3,3)
     ssd_values_nn=np.ndarray(len(translation_values))
+    ssd_values_ln=np.ndarray(len(translation_values))
+    ncc_values_nn=np.ndarray(len(translation_values))
+    ncc_values_ln=np.ndarray(len(translation_values))
 
     # Apply successive translations
     for i in range(0,len(translation_values)):
         print('Perform resampling '+str(i+1)+'/'+str(len(translation_values)))
         transformation_matrix[0][2]=translation_values[i]
-        warped_image_nn=resampling_ln_fast(reference_image,
+        warped_image_nn=resampling_nn_fast(reference_image,
                                                 floating_image,
                                                 transformation_matrix)
-        #ssd_values_nn[i]=ssd(reference_image,warped_image_nn)
-		ncc_values_ln[i]=ncc(reference_image,warped_image_nn)
+        warped_image_ln=resampling_ln_fast(reference_image,
+                                                floating_image,
+                                                transformation_matrix)                                                
+        ssd_values_nn[i]=ssd(reference_image,warped_image_nn)
+        ssd_values_ln[i]=ssd(reference_image,warped_image_ln)
+        ncc_values_nn[i]=ncc(reference_image,warped_image_nn)
+        ncc_values_ln[i]=ncc(reference_image,warped_image_ln)
 
     # Display the results
-    plt.subplot(1, 1, 1)
-    plt.plot(translation_values, ncc_values_nn, 'b-', label='linear interpolation')
+    plt.subplot(2, 1, 1)
+    plt.plot(translation_values, ssd_values_nn, 'b-', label='nearest neighbour interpolation')
+    plt.plot(translation_values, ssd_values_ln, 'c-', label='linear interpolation')
     plt.legend(loc='best', numpoints=1, fontsize='small')
     plt.xlabel('Translation (in voxel)')
     plt.ylabel('SSD value')
+    
+    plt.subplot(2, 1, 2)
+    plt.plot(translation_values, ncc_values_nn, 'b-', label='')
+    plt.plot(translation_values, ncc_values_ln, 'c-', label='')
+    plt.legend(loc='best', numpoints=1, fontsize='small')
+    plt.xlabel('Translation (in voxel)')
+    plt.ylabel('NCC value')
     plt.show()
 
     # Display an image
