@@ -113,23 +113,35 @@ def resampling_ln(reference,
 def resampling_ln_fast(reference,
                        floating,
                        transformation):
-        # Compute the deformation field
     ref_def = np.ones([3,reference.size])
     ref_def[0:2,:] = np.mgrid[0:reference.shape[0],0:reference.shape[1]].reshape(2,reference.size)
     flo_def=transformation.dot(ref_def)
     
-    # Compute the nearest indices
-    pre = np.round(flo_def).astype('int')
-    indices = pre[0,:] * floating.shape[1] + pre[1,:]
+    pre = np.floor(flo_def).astype('int')
+    ratio = flo_def - pre.astype('float')
+    indices_a = pre[0,:] * floating.shape[1] + pre[1,:]
+    indices_b = pre[0,:] * floating.shape[1] + pre[1,:] + 1
+    indices_c = (pre[0,:]+1) * floating.shape[1] + pre[1,:]
+    indices_d = (pre[0,:]+1) * floating.shape[1] + pre[1,:] + 1
 
     # Cheap boundary conditions
-    indices[indices<0]=0
-    indices[indices>=floating.size]=floating.size-1
+    indices_a[indices_a<0]=0
+    indices_b[indices_b<0]=0
+    indices_c[indices_c<0]=0
+    indices_d[indices_d<0]=0
+    indices_a[indices_a>=floating.size]=floating.size-1
+    indices_b[indices_b>=floating.size]=floating.size-1
+    indices_c[indices_c>=floating.size]=floating.size-1
+    indices_d[indices_d>=floating.size]=floating.size-1
 
     # Weighted sum
-    warped_image = floating.ravel()[indices]
+    warped_image = \
+        floating.ravel()[indices_a] * (1-ratio[0,:]) * (1-ratio[1,:]) + \
+        floating.ravel()[indices_b] * (1-ratio[0,:]) * ratio[1,:] + \
+        floating.ravel()[indices_c] * ratio[0,:] * (1-ratio[1,:]) + \
+        floating.ravel()[indices_d] * ratio[0,:] * ratio[1,:]
     return warped_image.reshape(reference.shape)
-    return None
+
 
 # Sum squared difference
 def ssd(img1, img2):
@@ -161,9 +173,9 @@ def main():
     for i in range(0,len(translation_values)):
         print('Perform resampling '+str(i+1)+'/'+str(len(translation_values)))
         transformation_matrix[0][2]=translation_values[i]
-        warped_image_nn=resampling_ln(reference_image,
+        warped_image_nn=resampling_ln_fast(reference_image,
                                                 floating_image,
-                                                transformation_matrix,0)
+                                                transformation_matrix)
         ssd_values_nn[i]=ssd(reference_image,warped_image_nn)
 
     # Display the results
