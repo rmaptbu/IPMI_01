@@ -149,8 +149,11 @@ def ssd(img1, img2):
 
 # Normalised cross correlation
 def ncc(img1, img2):
-    # TODO
-    return None
+	mean1=np.mean(img1)
+	mean2=np.mean(img2)
+	result=np.sum((img1-mean1)*(img2-mean2))
+    return result
+    
 
 # Normalised mutual information
 def nmi(img1, img2):
@@ -164,7 +167,7 @@ def main():
     floating_image=read_png_file('./BrainWeb_2D.png')
     
     # Generate and apply a transformation
-    translation_values=np.arange(-2,2,0.25,dtype='float')
+    translation_values=np.arange(-2,2,0.05,dtype='float')
 #    translation_values=np.array([-2])
     transformation_matrix=np.eye(3,3)
     ssd_values_nn=np.ndarray(len(translation_values))
@@ -176,11 +179,12 @@ def main():
         warped_image_nn=resampling_ln_fast(reference_image,
                                                 floating_image,
                                                 transformation_matrix)
-        ssd_values_nn[i]=ssd(reference_image,warped_image_nn)
+        #ssd_values_nn[i]=ssd(reference_image,warped_image_nn)
+		ncc_values_ln[i]=ncc(reference_image,warped_image_nn)
 
     # Display the results
     plt.subplot(1, 1, 1)
-    plt.plot(translation_values, ssd_values_nn, 'b-', label='Nearest neigbour interpolation')
+    plt.plot(translation_values, ncc_values_nn, 'b-', label='linear interpolation')
     plt.legend(loc='best', numpoints=1, fontsize='small')
     plt.xlabel('Translation (in voxel)')
     plt.ylabel('SSD value')
